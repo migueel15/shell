@@ -21,12 +21,14 @@ Some code adapted from "Fundamentos de Sistemas Operativos", Silberschatz et al.
 //  null-terminated string.
 // -----------------------------------------------------------------------
 
-void get_command(char *inputBuffer, int size, char *args[], int *background) {
+void get_command(char *inputBuffer, int size, char *args[], int *background,
+                 int *respawnable) {
   int length; /* # of characters in the command line */
   int i;      /* loop index for accessing inputBuffer array */
   int start;  /* index where beginning of next command parameter is */
   int ct = 0; /* index of where to place the next parameter into args[] */
   *background = 0;
+  *respawnable = 0;
 
   /* read what the user enters on the command line */
   length = read(STDIN_FILENO, inputBuffer, size);
@@ -60,9 +62,12 @@ void get_command(char *inputBuffer, int size, char *args[], int *background) {
       inputBuffer[i] = '\0';
       args[ct] = NULL; /* no more arguments to this command */
       break;
-    default:                       /* some other character */
-      if (inputBuffer[i] == '&') { // background indicator
+    default: /* some other character */
+      if (inputBuffer[i] == '&' || inputBuffer[i] == '+') {
         *background = 1;
+        if (inputBuffer[i] == '+') {
+          *respawnable = 1;
+        }
         if (start != -1) {
           args[ct] = &inputBuffer[start];
           ct++;
