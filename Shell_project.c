@@ -60,9 +60,24 @@ void manejador(int sig) {
              current->command, info);
       current->state = BACKGROUND;
     } else if (status_analyzed == SIGNALED || status_analyzed == EXITED) {
-      printf("Background pid: %d, command: %s, Exited, info: %d\n", pid_wait,
-             current->command, info);
-      delete_job(job_list, current);
+      if (current->state == RESPAWNABLE) {
+        printf(
+            "Background Respawneable pid: %d, command: %s, Exited, info: %d\n",
+            pid_wait, current->command, info);
+        current->state = RESPAWNABLE;
+        current->pgid = fork();
+        if (current->pgid == 0) {
+          // falta pasar los argumentos por parametro en vez de NULL
+          execvp(current->command, NULL);
+          perror("Error al ejecutar el comando");
+          exit(-1);
+        }
+
+      } else {
+        printf("Background pid: %d, command: %s, Exited, info: %d\n", pid_wait,
+               current->command, info);
+        delete_job(job_list, current);
+      }
     }
   }
   mask_signal(SIGCHLD, SIG_UNBLOCK);
@@ -76,6 +91,7 @@ void manejador(int sig) {
 int main(void) {
   char inputBuffer[MAX_LINE]; /* buffer to hold the command entered */
   int background;             /* equals 1 if a command is followed by '&' */
+  int respawneable;
   int internal_command;
   char *args[MAX_LINE / 2]; /* command line (of 256) has max of 128 arguments */
   // probably useful variables:
@@ -105,7 +121,7 @@ int main(void) {
 
     printf("COMMAND->");
     fflush(stdout);
-    get_command(inputBuffer, MAX_LINE, args, &background);
+    get_command(inputBuffer, MAX_LINE, args, &background, &respawneable);
     parse_redirections(args, &file_in, &file_out);
     int err = change_inout(file_in, file_out);
     if (err) {
@@ -139,7 +155,7 @@ int main(void) {
       terminal_signals(SIG_DFL);
       execvp(args[0], args);
       perror("Error al ejecutar el comando");
-      exit(1);
+      exit(-1);
     } else {
       // padre
       if (background == 0) {
@@ -162,10 +178,17 @@ int main(void) {
       } else {
         // background
         mask_signal(SIGCHLD, SIG_BLOCK);
-        job *newjob = new_job(pid_fork, args[0], BACKGROUND);
+        job *newjob = NULL;
+        if (respawneable == 1) {
+          newjob = new_job(pid_fork, args[0], RESPAWNABLE);
+          printf("Background Respawnable job runing... pid: %d, command: %s\n",
+                 pid_fork, args[0]);
+        } else {
+          newjob = new_job(pid_fork, args[0], BACKGROUND);
+          printf("Background job runing... pid: %d, command: %s\n", pid_fork,
+                 args[0]);
+        }
         add_job(job_list, newjob);
-        printf("Background job runing... pid: %d, command: %s\n", pid_fork,
-               args[0]);
         mask_signal(SIGCHLD, SIG_UNBLOCK);
       }
     }
