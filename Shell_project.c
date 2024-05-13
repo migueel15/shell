@@ -130,9 +130,9 @@ int main(void) {
       continue;
     }
 
-    if (pid_fork == 0) { // hijo
+    if (pid_fork == 0) {
+      // hijo
       setpgid(getpid(), getpid());
-
       if (background == 0) {
         tcsetpgrp(STDIN_FILENO, getpid());
       }
@@ -140,8 +140,10 @@ int main(void) {
       execvp(args[0], args);
       perror("Error al ejecutar el comando");
       exit(1);
-    } else { // padre
+    } else {
+      // padre
       if (background == 0) {
+        // foreground
         pid_wait = waitpid(pid_fork, &status, WUNTRACED);
         tcsetpgrp(STDIN_FILENO, getpid());
         status_res = analyze_status(status, &info);
@@ -153,10 +155,12 @@ int main(void) {
                  args[0], status_strings[status_res], info);
           mask_signal(SIGCHLD, SIG_UNBLOCK);
         } else if (status_res == EXITED || status_res == SIGNALED) {
+
           printf("Foreground pid: %d, command: %s, %s, info: %d\n", pid_wait,
                  args[0], status_strings[status_res], info);
         }
       } else {
+        // background
         mask_signal(SIGCHLD, SIG_BLOCK);
         job *newjob = new_job(pid_fork, args[0], BACKGROUND);
         add_job(job_list, newjob);
@@ -165,6 +169,5 @@ int main(void) {
         mask_signal(SIGCHLD, SIG_UNBLOCK);
       }
     }
-
-  } // end while
+  }
 }
