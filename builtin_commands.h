@@ -9,7 +9,6 @@ typedef enum BuiltinCommand {
   JOBS,
   FG,
   BG,
-  // ....
 } e_Builtin;
 
 typedef struct Command {

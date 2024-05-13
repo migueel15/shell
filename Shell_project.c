@@ -1,19 +1,3 @@
-/**
-UNIX Shell Project
-
-Sistemas Operativos
-Grados I. Informatica, Computadores & Software
-Dept. Arquitectura de Computadores - UMA
-
-Some code adapted from "Fundamentos de Sistemas Operativos", Silberschatz et al.
-
-To compile and run the program:
-   $ gcc Shell_project.c job_control.c -o Shell
-   $ ./Shell
-        (then type ^D to exit program)
-
-**/
-
 #include "builtin_commands.h"
 #include "job_control.h" // remember to compile with module job_control.c
 #include "parse_redir.h"
@@ -25,6 +9,35 @@ To compile and run the program:
 #define MAX_LINE                                                               \
   256 /*erto 256 chars per line, per command, should be enough. */
 job *job_list;
+
+// return 1 if error
+int change_inout(char *file_in, char *file_out) {
+  int in_fd, out_fd;
+
+  if (file_in != NULL) {
+    in_fd = open(file_in, O_RDONLY); // read only
+    if (in_fd == -1) {
+      perror("Error opening input file");
+      return 1;
+    }
+    dup2(in_fd, STDIN_FILENO);
+    close(in_fd);
+  }
+
+  if (file_out != NULL) {
+    // write only, create if not exists, delete contenct, if exists,
+    // privileges
+    out_fd = open(file_out, O_WRONLY | O_CREAT | O_TRUNC, 0666);
+    if (out_fd == -1) {
+      perror("Error opening output file");
+      return 1;
+    }
+    dup2(out_fd, STDOUT_FILENO);
+    close(out_fd);
+  }
+
+  return 0;
+}
 
 void manejador(int sig) {
   mask_signal(SIGCHLD, SIG_BLOCK);
@@ -70,25 +83,22 @@ int main(void) {
   int status;             /* status returned by wait */
   enum status status_res; /* status processed by analyze_status() */
   int info;               /* info processed by analyze_status() */
+
   char *file_in;
   char *file_out;
-
-  /* Program terminates normally inside get_command() after ^D is typed*/
-
-  job_list = new_list("Lista de procesos");
-  terminal_signals(SIG_IGN);
-  signal(SIGCHLD, manejador);
 
   // store the original descriptors to restore them later
   int original_stdin = dup(STDIN_FILENO);
   int original_stdout = dup(STDOUT_FILENO);
 
-  while (1) {
+  job_list = new_list("Lista de procesos");
+  terminal_signals(SIG_IGN);
+  signal(SIGCHLD, manejador);
 
+  while (1) {
     // reset redirections
     file_in = NULL;
     file_out = NULL;
-
     // restore original descriptors
     dup2(original_stdin, STDIN_FILENO);
     dup2(original_stdout, STDOUT_FILENO);
@@ -97,28 +107,9 @@ int main(void) {
     fflush(stdout);
     get_command(inputBuffer, MAX_LINE, args, &background);
     parse_redirections(args, &file_in, &file_out);
-    int in_fd, out_fd;
-
-    if (file_in != NULL) {
-      in_fd = open(file_in, O_RDONLY); // read only
-      if (in_fd == -1) {
-        perror("Error opening input file");
-        continue;
-      }
-      dup2(in_fd, STDIN_FILENO);
-      close(in_fd);
-    }
-
-    if (file_out != NULL) {
-      // write only, create if not exists, delete contenct, if exists,
-      // privileges
-      out_fd = open(file_out, O_WRONLY | O_CREAT | O_TRUNC, 0666);
-      if (out_fd == -1) {
-        perror("Error opening output file");
-        continue;
-      }
-      dup2(out_fd, STDOUT_FILENO);
-      close(out_fd);
+    int err = change_inout(file_in, file_out);
+    if (err) {
+      continue;
     }
 
     if (args[0] == NULL) {
