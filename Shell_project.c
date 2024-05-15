@@ -71,6 +71,7 @@ void manejador(int sig) {
           current->pgid = pid_fork;
         } else {
           setpgid(getpid(), getpid());
+          terminal_signals(SIG_DFL);
           execvp(current->command, current->args);
           perror("Error al ejecutar el comando");
           exit(-1);
