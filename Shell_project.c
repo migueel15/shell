@@ -65,12 +65,12 @@ void manejador(int sig) {
         printf(
             "Background Respawneable pid: %d, command: %s, Exited, info: %d\n",
             pid_wait, current->command, info);
-        current->state = RESPAWNABLE;
 
         int pid_fork = fork();
         if (pid_fork > 0) {
           current->pgid = pid_fork;
         } else {
+          setpgid(getpid(), getpid());
           execvp(current->command, current->args);
           perror("Error al ejecutar el comando");
           exit(-1);
