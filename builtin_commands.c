@@ -5,8 +5,9 @@
 #include <string.h>
 #include <unistd.h>
 
-s_Command builtin_commands[] = {
-    {EXIT, "exit"}, {CD, "cd"}, {JOBS, "jobs"}, {FG, "fg"}, {BG, "bg"}};
+s_Command builtin_commands[] = {{EXIT, "exit"}, {CD, "cd"},
+                                {JOBS, "jobs"}, {FG, "fg"},
+                                {BG, "bg"},     {ALARM_THREAD, "alarm-thread"}};
 
 e_Builtin check_if_builtin(char *command) {
   for (int i = 0; i < sizeof(builtin_commands) / sizeof(s_Command); i++) {
@@ -17,7 +18,8 @@ e_Builtin check_if_builtin(char *command) {
   return -1;
 }
 
-void run_builtin_command(e_Builtin COMMAND, char *args[], job *job_list) {
+void run_builtin_command(e_Builtin COMMAND, char *args[], job *job_list,
+                         s_alarm_thread_args *alarm_thread_args) {
   switch (COMMAND) {
   case EXIT:
     exit(0);
@@ -33,6 +35,9 @@ void run_builtin_command(e_Builtin COMMAND, char *args[], job *job_list) {
     break;
   case BG:
     send_bg(args, job_list);
+    break;
+  case ALARM_THREAD:
+    alarm_thread(args, job_list, alarm_thread_args);
     break;
   }
 }
@@ -100,4 +105,39 @@ void send_bg(char *args[], job *job_list) {
     killpg(item->pgid, SIGCONT);
   }
   unblock_SIGCHLD();
+}
+
+void *sleepTimeout(void *args) {
+  s_alarm_thread_args *alarm_args = (s_alarm_thread_args *)args;
+  sleep(alarm_args->seconds);
+  kill(alarm_args->pid, SIGKILL);
+  alarm_args->active = 0;
+  return NULL;
+}
+
+void alarm_thread(char **args, job *job_list,
+                  s_alarm_thread_args *alarm_thread) {
+  if (args[1] == NULL) {
+    perror("Usage: alarm-thread <seconds>\n");
+    return;
+  }
+  int seconds = atoi(args[1]);
+  if (seconds <= 0) {
+    perror("Usage: alarm-thread <seconds>\n");
+    return;
+  }
+  // alarm_thread = malloc(sizeof(s_alarm_thread_args));
+
+  alarm_thread->active = 1;
+  alarm_thread->seconds = seconds;
+
+  // shift args 2 positions to the left
+  int i = 0;
+  args[0] = NULL;
+  args[1] = NULL;
+  while (args[i + 2] != NULL) {
+    args[i] = strdup(args[i + 2]);
+    args[i + 2] = NULL;
+    i++;
+  }
 }
