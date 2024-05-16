@@ -42,6 +42,7 @@ int change_inout(char *file_in, char *file_out) {
 void manejador(int sig) {
   mask_signal(SIGCHLD, SIG_BLOCK);
   int pid_wait;
+  int respawneable_fork;
   int status;
   int info;
   enum status status_analyzed;
@@ -53,22 +54,35 @@ void manejador(int sig) {
     status_analyzed = analyze_status(status, &info);
 
     if (status_analyzed == SUSPENDED) {
-      printf("Background pid: %d, command: %s, Suspended, info: %d\n", pid_wait,
-             current->command, info);
+      if (current->state == RESPAWNABLE) {
+        printf("Respawneable pid: %d, command: %s, Suspended, info: "
+               "%d\n",
+               pid_wait, current->command, info);
+      } else {
+        printf("Background pid: %d, command: %s, Suspended, info: %d\n",
+               pid_wait, current->command, info);
+      }
       current->state = STOPPED;
+
     } else if (status_analyzed == CONTINUED) {
-      printf("Background pid: %d, command: %s, Continued, info: %d\n", pid_wait,
-             current->command, info);
-      current->state = BACKGROUND;
+      if (current->state == RESPAWNABLE) {
+        printf("Respawneable pid: %d, command: %s, Continued, info: "
+               "%d\n",
+               pid_wait, current->command, info);
+      } else {
+        printf("Background pid: %d, command: %s, Continued, info: %d\n",
+               pid_wait, current->command, info);
+        current->state = BACKGROUND;
+      }
+
     } else if (status_analyzed == SIGNALED || status_analyzed == EXITED) {
       if (current->state == RESPAWNABLE) {
-        printf(
-            "Background Respawneable pid: %d, command: %s, Exited, info: %d\n",
-            pid_wait, current->command, info);
+        printf("Respawneable pid: %d, command: %s, Exited, info: %d\n",
+               pid_wait, current->command, info);
 
-        int pid_fork = fork();
-        if (pid_fork > 0) {
-          current->pgid = pid_fork;
+        respawneable_fork = fork();
+        if (respawneable_fork > 0) {
+          current->pgid = respawneable_fork;
         } else {
           setpgid(getpid(), getpid());
           terminal_signals(SIG_DFL);
@@ -103,7 +117,6 @@ int main(void) {
   int status;             /* status returned by wait */
   enum status status_res; /* status processed by analyze_status() */
   int info;               /* info processed by analyze_status() */
-
   char *file_in;
   char *file_out;
 
@@ -111,9 +124,9 @@ int main(void) {
   int original_stdin = dup(STDIN_FILENO);
   int original_stdout = dup(STDOUT_FILENO);
 
-  job_list = new_list("Lista de procesos");
-  terminal_signals(SIG_IGN);
-  signal(SIGCHLD, manejador);
+  job_list = new_list("Lista de procesos"); // create new job list
+  terminal_signals(SIG_IGN);                // ignore signals
+  signal(SIGCHLD, manejador);               // signal handler
 
   while (1) {
     // reset redirections

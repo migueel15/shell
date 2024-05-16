@@ -34,7 +34,7 @@ typedef struct job_ {
   char *command; /* program name */
   enum job_state state;
   struct job_ *next; /* next job in the list */
-  char *args[128];
+  char **args;
 } job;
 
 // -----------------------------------------------------------------------
