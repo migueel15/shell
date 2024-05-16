@@ -1,4 +1,5 @@
 #include "builtin_commands.h"
+#include "job_control.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -65,7 +66,10 @@ void send_fg(char *args[], job *job_list) {
   if (item == NULL) {
     return;
   }
-  tcsetpgrp(STDIN_FILENO, item->pgid);     // damos la terminal al proceso
+  tcsetpgrp(STDIN_FILENO, item->pgid); // damos la terminal al proceso
+  // if (item->state == RESPAWNABLE) {
+  //   item->state = BACKGROUND;
+  // }
   killpg(item->pgid, SIGCONT);             // mando señal para que continue
   waitpid(item->pgid, &status, WUNTRACED); // espero a que cambie de estado
   tcsetpgrp(STDIN_FILENO, getpid());       // devuelvo la terminal al padre
@@ -91,7 +95,7 @@ void send_bg(char *args[], job *job_list) {
   if (item == NULL) {
     return;
   }
-  if (item->state == STOPPED) {
+  if (item->state == STOPPED || item->state == RESPAWNABLE) {
     item->state = BACKGROUND;
     killpg(item->pgid, SIGCONT);
   }

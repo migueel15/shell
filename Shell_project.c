@@ -51,6 +51,7 @@ void manejador(int sig) {
          0) {
     current = get_item_bypid(job_list, pid_wait);
     status_analyzed = analyze_status(status, &info);
+
     if (status_analyzed == SUSPENDED) {
       printf("Background pid: %d, command: %s, Suspended, info: %d\n", pid_wait,
              current->command, info);
@@ -64,11 +65,14 @@ void manejador(int sig) {
         printf(
             "Background Respawneable pid: %d, command: %s, Exited, info: %d\n",
             pid_wait, current->command, info);
-        current->state = RESPAWNABLE;
-        current->pgid = fork();
-        if (current->pgid == 0) {
-          // falta pasar los argumentos por parametro en vez de NULL
-          execvp(current->command, NULL);
+
+        int pid_fork = fork();
+        if (pid_fork > 0) {
+          current->pgid = pid_fork;
+        } else {
+          setpgid(getpid(), getpid());
+          terminal_signals(SIG_DFL);
+          execvp(current->command, current->args);
           perror("Error al ejecutar el comando");
           exit(-1);
         }
@@ -122,15 +126,17 @@ int main(void) {
     printf("COMMAND->");
     fflush(stdout);
     get_command(inputBuffer, MAX_LINE, args, &background, &respawneable);
+
+    if (args[0] == NULL) {
+      continue;
+    }
+
     parse_redirections(args, &file_in, &file_out);
     int err = change_inout(file_in, file_out);
     if (err) {
       continue;
     }
 
-    if (args[0] == NULL) {
-      continue;
-    }
     // -------- BUILTIN COMMANDS -------- //
     // returns -1 if not a builtin command
     e_Builtin COMMAND = check_if_builtin(args[0]);
@@ -165,7 +171,7 @@ int main(void) {
         status_res = analyze_status(status, &info);
         if (status_res == SUSPENDED) {
           mask_signal(SIGCHLD, SIG_BLOCK);
-          job *newjob = new_job(pid_fork, args[0], STOPPED);
+          job *newjob = new_job(pid_fork, args[0], args, STOPPED);
           add_job(job_list, newjob);
           printf("Foreground pid: %d, command: %s, %s, info: %d\n", pid_wait,
                  args[0], status_strings[status_res], info);
@@ -180,11 +186,11 @@ int main(void) {
         mask_signal(SIGCHLD, SIG_BLOCK);
         job *newjob = NULL;
         if (respawneable == 1) {
-          newjob = new_job(pid_fork, args[0], RESPAWNABLE);
+          newjob = new_job(pid_fork, args[0], args, RESPAWNABLE);
           printf("Background Respawnable job runing... pid: %d, command: %s\n",
                  pid_fork, args[0]);
         } else {
-          newjob = new_job(pid_fork, args[0], BACKGROUND);
+          newjob = new_job(pid_fork, args[0], args, BACKGROUND);
           printf("Background job runing... pid: %d, command: %s\n", pid_fork,
                  args[0]);
         }

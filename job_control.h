@@ -34,7 +34,7 @@ typedef struct job_ {
   char *command; /* program name */
   enum job_state state;
   struct job_ *next; /* next job in the list */
-  // char *args[];
+  char *args[128];
 } job;
 
 // -----------------------------------------------------------------------
@@ -42,7 +42,8 @@ typedef struct job_ {
 // -----------------------------------------------------------------------
 void get_command(char inputBuffer[], int size, char *args[], int *background,
                  int *respawnable);
-job *new_job(pid_t pid, const char *command, enum job_state state);
+job *new_job(pid_t pid, const char *command, char *args[],
+             enum job_state state);
 void add_job(job *list, job *item);
 int delete_job(job *list, job *item);
 job *get_item_bypid(job *list, pid_t pid);
@@ -65,7 +66,8 @@ void mask_signal(int signal, int block);
 #define empty_list(list)                                                       \
   (!(list->pgid)) // returns 1 (true) if the list is empty
 
-#define new_list(name) new_job(0, name, FOREGROUND) // name must be const char *
+#define new_list(name)                                                         \
+  new_job(0, name, NULL, FOREGROUND) // name must be const char *
 
 #define print_job_list(list) print_list(list, print_item)
 

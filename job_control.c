@@ -86,13 +86,20 @@ void get_command(char *inputBuffer, int size, char *args[], int *background,
 // -----------------------------------------------------------------------
 /* devuelve puntero a un nodo con sus valores inicializados,
 devuelve NULL si no pudo realizarse la reserva de memoria*/
-job *new_job(pid_t pid, const char *command, enum job_state state) {
+job *new_job(pid_t pid, const char *command, char *args[128],
+             enum job_state state) {
   job *aux;
   aux = (job *)malloc(sizeof(job));
   aux->pgid = pid;
   aux->state = state;
   aux->command = strdup(command);
   aux->next = NULL;
+  int i;
+  if (args != NULL) {
+    for (i = 0; args[i] != NULL; i++) {
+      aux->args[i] = strdup(args[i]);
+    }
+  }
   return aux;
 }
 
@@ -147,8 +154,11 @@ job *get_item_bypos(job *list, int n) {
  */
 void print_item(job *item) {
 
-  printf("pid: %d, command: %s, state: %s\n", item->pgid, item->command,
-         state_strings[item->state]);
+  // printf("pid: %d, command: %s, state: %s\n", item->pgid, item->command,
+  // state_strings[item->state]);
+  printf("pid: %d, command: %s, state: %s, args: %s %s %s \n", item->pgid,
+         item->command, state_strings[item->state], item->args[0],
+         item->args[1], item->args[2]);
 }
 
 // -----------------------------------------------------------------------
