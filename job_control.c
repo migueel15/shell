@@ -157,9 +157,8 @@ void print_item(job *item) {
 
   // printf("pid: %d, command: %s, state: %s\n", item->pgid, item->command,
   // state_strings[item->state]);
-  printf("pid: %d, command: %s, state: %s, args: %s %s %s \n", item->pgid,
-         item->command, state_strings[item->state], item->args[0],
-         item->args[1], item->args[2]);
+  printf("pid: %d, command: %s, state: %s\n", item->pgid, item->command,
+         state_strings[item->state]);
 }
 
 // -----------------------------------------------------------------------
