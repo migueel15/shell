@@ -23,10 +23,10 @@ Some code adapted from "Fundamentos de Sistemas Operativos", Silberschatz et al.
 // ----------- ENUMERATIONS ---------------------------------------------
 enum status { SUSPENDED, SIGNALED, EXITED, CONTINUED };
 enum job_state { FOREGROUND, BACKGROUND, STOPPED, RESPAWNABLE };
-static char *status_strings[] = {"Suspended", "Signaled", "Exited",
-                                 "Continued"};
-static char *state_strings[] = {"Foreground", "Background", "Stopped",
-                                "Respawnable"};
+static const char *status_strings[] = {"Suspended", "Signaled", "Exited",
+                                       "Continued"};
+static const char *state_strings[] = {"Foreground", "Background", "Stopped",
+                                      "Respawnable"};
 
 // ----------- JOB TYPE FOR JOB LIST ------------------------------------
 typedef struct job_ {

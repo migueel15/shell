@@ -71,10 +71,7 @@ void send_fg(char *args[], job *job_list) {
   if (item == NULL) {
     return;
   }
-  tcsetpgrp(STDIN_FILENO, item->pgid); // damos la terminal al proceso
-  // if (item->state == RESPAWNABLE) {
-  //   item->state = BACKGROUND;
-  // }
+  tcsetpgrp(STDIN_FILENO, item->pgid);     // damos la terminal al proceso
   killpg(item->pgid, SIGCONT);             // mando señal para que continue
   waitpid(item->pgid, &status, WUNTRACED); // espero a que cambie de estado
   tcsetpgrp(STDIN_FILENO, getpid());       // devuelvo la terminal al padre

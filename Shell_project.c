@@ -41,7 +41,7 @@ int change_inout(char *file_in, char *file_out) {
 }
 
 void manejador(int sig) {
-  mask_signal(SIGCHLD, SIG_BLOCK);
+  block_SIGCHLD();
   int pid_wait;
   int respawneable_fork;
   int status;
@@ -99,7 +99,7 @@ void manejador(int sig) {
       }
     }
   }
-  mask_signal(SIGCHLD, SIG_UNBLOCK);
+  unblock_SIGCHLD();
 }
 
 // -----------------------------------------------------------------------
@@ -200,12 +200,12 @@ int main(void) {
         tcsetpgrp(STDIN_FILENO, getpid());
         status_res = analyze_status(status, &info);
         if (status_res == SUSPENDED) {
-          mask_signal(SIGCHLD, SIG_BLOCK);
+          block_SIGCHLD();
           job *newjob = new_job(pid_fork, args[0], args, STOPPED);
           add_job(job_list, newjob);
           printf("Foreground pid: %d, command: %s, %s, info: %d\n", pid_wait,
                  args[0], status_strings[status_res], info);
-          mask_signal(SIGCHLD, SIG_UNBLOCK);
+          unblock_SIGCHLD();
         } else if (status_res == EXITED || status_res == SIGNALED) {
 
           printf("Foreground pid: %d, command: %s, %s, info: %d\n", pid_wait,
@@ -213,7 +213,7 @@ int main(void) {
         }
       } else {
         // background
-        mask_signal(SIGCHLD, SIG_BLOCK);
+        block_SIGCHLD();
         job *newjob = NULL;
         if (respawneable == 1) {
           newjob = new_job(pid_fork, args[0], args, RESPAWNABLE);
@@ -225,7 +225,7 @@ int main(void) {
                  args[0]);
         }
         add_job(job_list, newjob);
-        mask_signal(SIGCHLD, SIG_UNBLOCK);
+        unblock_SIGCHLD();
       }
     }
   }
