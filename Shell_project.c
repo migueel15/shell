@@ -112,7 +112,7 @@ int main(void) {
   int background;             /* equals 1 if a command is followed by '&' */
   int respawneable;
   int internal_command;
-  s_alarm_thread_args alarm_thread;
+  s_alarm_thread_args *alarm_thread;
 
   char *args[MAX_LINE / 2]; /* command line (of 256) has max of 128 arguments */
   // probably useful variables:
@@ -153,12 +153,14 @@ int main(void) {
     if (err) {
       continue;
     }
+    alarm_thread = malloc(sizeof(s_alarm_thread_args));
+    alarm_thread->active = 0;
 
     // -------- BUILTIN COMMANDS -------- //
     // returns -1 if not a builtin command
     e_Builtin COMMAND = check_if_builtin(args[0]);
     if (COMMAND != -1) {
-      run_builtin_command(COMMAND, args, job_list, &alarm_thread);
+      run_builtin_command(COMMAND, args, job_list, alarm_thread);
       if (COMMAND != ALARM_THREAD) {
         continue;
       }
@@ -183,10 +185,12 @@ int main(void) {
       exit(-1);
     } else {
       // padre
-      if (alarm_thread.active == 1) {
+      if (alarm_thread->active == 1) {
         pthread_t thread;
-        alarm_thread.pid = pid_fork;
-        pthread_create(&thread, NULL, sleepTimeout, (void *)&alarm_thread);
+        alarm_thread->pid = pid_fork;
+        printf("Thread: active %d, seconds %d, pid %d\n", alarm_thread->active,
+               alarm_thread->seconds, alarm_thread->pid);
+        pthread_create(&thread, NULL, sleepTimeout, (void *)alarm_thread);
         pthread_detach(thread);
       }
 

@@ -111,7 +111,7 @@ void *sleepTimeout(void *args) {
   s_alarm_thread_args *alarm_args = (s_alarm_thread_args *)args;
   sleep(alarm_args->seconds);
   kill(alarm_args->pid, SIGKILL);
-  alarm_args->active = 0;
+  free(alarm_args);
   return NULL;
 }
 
@@ -126,7 +126,6 @@ void alarm_thread(char **args, job *job_list,
     perror("Usage: alarm-thread <seconds>\n");
     return;
   }
-  // alarm_thread = malloc(sizeof(s_alarm_thread_args));
 
   alarm_thread->active = 1;
   alarm_thread->seconds = seconds;
