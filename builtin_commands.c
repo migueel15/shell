@@ -5,12 +5,12 @@
 #include <string.h>
 #include <unistd.h>
 
-s_Command builtin_commands[] = {{EXIT, "exit"}, {CD, "cd"},
+s_command builtin_commands[] = {{EXIT, "exit"}, {CD, "cd"},
                                 {JOBS, "jobs"}, {FG, "fg"},
                                 {BG, "bg"},     {ALARM_THREAD, "alarm-thread"}};
 
-e_Builtin check_if_builtin(char *command) {
-  for (int i = 0; i < sizeof(builtin_commands) / sizeof(s_Command); i++) {
+e_builtin check_if_builtin(char *command) {
+  for (int i = 0; i < sizeof(builtin_commands) / sizeof(s_command); i++) {
     if (strcmp(command, builtin_commands[i].commandString) == 0) {
       return builtin_commands[i].commandEnum;
     }
@@ -18,7 +18,7 @@ e_Builtin check_if_builtin(char *command) {
   return -1;
 }
 
-void run_builtin_command(e_Builtin COMMAND, char *args[], job *job_list,
+void run_builtin_command(e_builtin COMMAND, char *args[], job *job_list,
                          s_alarm_thread_args *alarm_thread_args) {
   switch (COMMAND) {
   case EXIT:
@@ -108,15 +108,15 @@ void send_bg(char *args[], job *job_list) {
 }
 
 void *sleepTimeout(void *args) {
-  s_alarm_thread_args *alarm_args = (s_alarm_thread_args *)args;
-  sleep(alarm_args->seconds);
-  kill(alarm_args->pid, SIGKILL);
-  free(alarm_args);
+  s_alarm_thread_args *alarm_thread_args = (s_alarm_thread_args *)args;
+  sleep(alarm_thread_args->seconds_to_sleep);
+  kill(alarm_thread_args->pid, SIGKILL);
+  free(alarm_thread_args);
   return NULL;
 }
 
 void alarm_thread(char **args, job *job_list,
-                  s_alarm_thread_args *alarm_thread) {
+                  s_alarm_thread_args *alarm_thread_args) {
   if (args[1] == NULL) {
     perror("Usage: alarm-thread <seconds>\n");
     return;
@@ -127,8 +127,8 @@ void alarm_thread(char **args, job *job_list,
     return;
   }
 
-  alarm_thread->active = 1;
-  alarm_thread->seconds = seconds;
+  alarm_thread_args->active = 1;
+  alarm_thread_args->seconds_to_sleep = seconds;
 
   // shift args 2 positions to the left
   int i = 0;

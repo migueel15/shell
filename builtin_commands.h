@@ -10,16 +10,16 @@ typedef enum {
   FG,
   BG,
   ALARM_THREAD,
-} e_Builtin;
+} e_builtin;
 
 typedef struct {
-  e_Builtin commandEnum;
+  e_builtin commandEnum;
   const char *commandString;
-} s_Command;
+} s_command;
 
 typedef struct {
   int active;
-  int seconds;
+  int seconds_to_sleep;
   int pid;
 } s_alarm_thread_args;
 
@@ -27,9 +27,9 @@ typedef struct {
  * Devuelve el enum correspondiente al comando pasado por parametro si se
  * reconoce como builtin. En otro caso devuelve -1.
  */
-e_Builtin check_if_builtin(char *command);
-void run_builtin_command(e_Builtin COMMAND, char *args[], job *jobs,
-                         s_alarm_thread_args *alarm_thread);
+e_builtin check_if_builtin(char *command);
+void run_builtin_command(e_builtin COMMAND, char *args[], job *jobs,
+                         s_alarm_thread_args *alarm_thread_args);
 void change_directory(char *args[]);
 void show_jobs(job *job_list);
 void send_fg(char *args[], job *job_list);
