@@ -71,6 +71,7 @@ void send_fg(char *args[], job *job_list) {
   }
   job *item = get_item_bypos(job_list, posicion);
   if (item == NULL) {
+    perror("Error in fg");
     return;
   }
   tcsetpgrp(STDIN_FILENO, item->pgid);     // damos la terminal al proceso
@@ -97,6 +98,7 @@ void send_bg(char *args[], job *job_list) {
   }
   job *item = get_item_bypos(job_list, posicion);
   if (item == NULL) {
+    perror("Error in bg");
     return;
   }
   if (item->state == STOPPED || item->state == RESPAWNABLE) {
