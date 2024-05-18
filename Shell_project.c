@@ -198,6 +198,9 @@ int main(void) {
         // foreground
         pid_wait = waitpid(pid_fork, &status, WUNTRACED);
         tcsetpgrp(STDIN_FILENO, getpid());
+        // restore original descriptors
+        dup2(original_stdin, STDIN_FILENO);
+        dup2(original_stdout, STDOUT_FILENO);
         status_res = analyze_status(status, &info);
         if (status_res == SUSPENDED) {
           block_SIGCHLD();
