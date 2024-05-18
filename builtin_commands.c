@@ -10,7 +10,9 @@ s_command builtin_commands[] = {{EXIT, "exit"}, {CD, "cd"},
                                 {BG, "bg"},     {ALARM_THREAD, "alarm-thread"}};
 
 e_builtin check_if_builtin(char *command) {
-  for (int i = 0; i < sizeof(builtin_commands) / sizeof(s_command); i++) {
+  // int maxLen = sizeof(builtin_commands) / sizeof(s_command);
+  int maxLen = 6;
+  for (int i = 0; i < maxLen; i++) {
     if (strcmp(command, builtin_commands[i].commandString) == 0) {
       return builtin_commands[i].commandEnum;
     }
