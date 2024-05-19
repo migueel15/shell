@@ -70,21 +70,23 @@ void send_fg(char *args[], job *job_list) {
     posicion = atoi(args[1]);
   }
   job *item = get_item_bypos(job_list, posicion);
-  if (item == NULL) {
-    perror("Error in fg");
-    return;
-  }
-  tcsetpgrp(STDIN_FILENO, item->pgid);     // damos la terminal al proceso
-  killpg(item->pgid, SIGCONT);             // mando señal para que continue
-  waitpid(item->pgid, &status, WUNTRACED); // espero a que cambie de estado
-  tcsetpgrp(STDIN_FILENO, getpid());       // devuelvo la terminal al padre
-  status = analyze_status(status, &info);
-  printf("Foreground pid: %d, command: %s, %s, info: %d\n", item->pgid, args[0],
-         status_strings[status], info);
-  if (status == EXITED || status == SIGNALED) {
-    delete_job(job_list, item);
-  } else if (status == SUSPENDED) {
-    item->state = STOPPED;
+
+  if (item != NULL) {
+    setpgid(getpid(), getpid());
+    tcsetpgrp(STDIN_FILENO, item->pgid); // damos la terminal al proceso
+    if (item->state == STOPPED) {
+      killpg(item->pgid, SIGCONT); // mando señal para que continue
+    }
+    waitpid(item->pgid, &status, WUNTRACED); // espero a que cambie de estado
+    tcsetpgrp(STDIN_FILENO, getpid());       // devuelvo la terminal al padre
+    status = analyze_status(status, &info);
+    printf("Foreground pid: %d, command: %s, %s, info: %d\n", item->pgid,
+           args[0], status_strings[status], info);
+    if (status == EXITED || status == SIGNALED) {
+      delete_job(job_list, item);
+    } else if (status == SUSPENDED) {
+      item->state = STOPPED;
+    }
   }
 
   unblock_SIGCHLD();
@@ -97,11 +99,7 @@ void send_bg(char *args[], job *job_list) {
     posicion = atoi(args[1]);
   }
   job *item = get_item_bypos(job_list, posicion);
-  if (item == NULL) {
-    perror("Error in bg");
-    return;
-  }
-  if (item->state == STOPPED || item->state == RESPAWNABLE) {
+  if (item != NULL && (item->state == STOPPED || item->state == RESPAWNABLE)) {
     item->state = BACKGROUND;
     killpg(item->pgid, SIGCONT);
   }
