@@ -111,6 +111,7 @@ int main(void) {
   char inputBuffer[MAX_LINE]; /* buffer to hold the command entered */
   int background;             /* equals 1 if a command is followed by '&' */
   int respawneable;
+  int is_delay_thread = 0;
   int internal_command;
   s_alarm_thread_args *alarm_thread_args;
 
@@ -140,6 +141,8 @@ int main(void) {
     dup2(original_stdin, STDIN_FILENO);
     dup2(original_stdout, STDOUT_FILENO);
 
+    is_delay_thread = 0;
+
     printf("COMMAND->");
     fflush(stdout);
     get_command(inputBuffer, MAX_LINE, args, &background, &respawneable);
@@ -162,12 +165,18 @@ int main(void) {
     e_builtin COMMAND = check_if_builtin(args[0]);
     if (COMMAND != -1) {
       run_builtin_command(COMMAND, args, job_list, alarm_thread_args);
-      if (COMMAND != ALARM_THREAD) {
+      if (COMMAND != ALARM_THREAD && COMMAND != DELAY_THREAD) {
         continue;
+      }
+
+      if (COMMAND == DELAY_THREAD) {
+        is_delay_thread = 1;
+        background = 1;
       }
     }
     // --------------------------------- //
 
+    printf("%d\n", is_delay_thread);
     pid_fork = fork();
     if (pid_fork == -1) {
       perror("Error al crear el proceso hijo");
@@ -176,20 +185,30 @@ int main(void) {
 
     if (pid_fork == 0) {
       // hijo
-      setpgid(getpid(), getpid());
-      if (background == 0) {
-        tcsetpgrp(STDIN_FILENO, getpid());
+
+      if (is_delay_thread == 1) {
+        pthread_t thread;
+        pthread_create(&thread, NULL, delay_thread, (void *)args);
+        pthread_detach(thread);
+        // exit(0);
+      } else {
+        setpgid(getpid(), getpid());
+        if (background == 0) {
+          tcsetpgrp(STDIN_FILENO, getpid());
+        }
+        terminal_signals(SIG_DFL);
+        execvp(args[0], args);
+        perror("Error al ejecutar el comando");
+        exit(-1);
       }
-      terminal_signals(SIG_DFL);
-      execvp(args[0], args);
-      perror("Error al ejecutar el comando");
-      exit(-1);
+
     } else {
       // padre
       if (alarm_thread_args->active == 1) {
         pthread_t thread;
         alarm_thread_args->pid = pid_fork;
-        pthread_create(&thread, NULL, sleepTimeout, (void *)alarm_thread_args);
+        pthread_create(&thread, NULL, sleepTimeoutKill,
+                       (void *)alarm_thread_args);
         pthread_detach(thread);
       }
 

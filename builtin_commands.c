@@ -5,13 +5,16 @@
 #include <string.h>
 #include <unistd.h>
 
-s_command builtin_commands[] = {{EXIT, "exit"}, {CD, "cd"},
-                                {JOBS, "jobs"}, {FG, "fg"},
-                                {BG, "bg"},     {ALARM_THREAD, "alarm-thread"}};
+s_command builtin_commands[] = {{EXIT, "exit"},
+                                {CD, "cd"},
+                                {JOBS, "jobs"},
+                                {FG, "fg"},
+                                {BG, "bg"},
+                                {ALARM_THREAD, "alarm-thread"},
+                                {DELAY_THREAD, "delay-thread"}};
 
 e_builtin check_if_builtin(char *command) {
-  // int maxLen = sizeof(builtin_commands) / sizeof(s_command);
-  int maxLen = 6;
+  int maxLen = sizeof(builtin_commands) / sizeof(s_command);
   for (int i = 0; i < maxLen; i++) {
     if (strcmp(command, builtin_commands[i].commandString) == 0) {
       return builtin_commands[i].commandEnum;
@@ -40,6 +43,9 @@ void run_builtin_command(e_builtin COMMAND, char *args[], job *job_list,
     break;
   case ALARM_THREAD:
     alarm_thread(args, job_list, alarm_thread_args);
+    break;
+  case DELAY_THREAD:
+    // delay_thread(args);
     break;
   }
 }
@@ -106,7 +112,7 @@ void send_bg(char *args[], job *job_list) {
   unblock_SIGCHLD();
 }
 
-void *sleepTimeout(void *args) {
+void *sleepTimeoutKill(void *args) {
   s_alarm_thread_args *alarm_thread_args = (s_alarm_thread_args *)args;
   sleep(alarm_thread_args->seconds_to_sleep);
   kill(alarm_thread_args->pid, SIGKILL);
@@ -138,4 +144,33 @@ void alarm_thread(char **args, job *job_list,
     args[i + 2] = NULL;
     i++;
   }
+}
+
+// void *sleepTimeout(void *args[]) {
+//   int seconds = atoi(args[1]);
+//   sleep(seconds);
+//   return NULL;
+// }
+
+void *delay_thread(void *params) {
+  char **args = (char **)params;
+
+  char *command = args[2];
+  execvp("notify-send",
+         (char *[]){"notify-send", command, "This is a delay thread", NULL});
+
+  if (args[1] == NULL) {
+    perror("Usage: delay <seconds>\n");
+    return NULL;
+  }
+  int seconds = atoi(args[1]);
+  if (seconds <= 0) {
+    perror("Usage: delay <seconds>\n");
+    return NULL;
+  }
+  sleep(seconds);
+
+  execvp(args[2], NULL);
+  perror("Error al ejecutar el comando");
+  return NULL;
 }
