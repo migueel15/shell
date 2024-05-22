@@ -188,9 +188,8 @@ int main(void) {
       if (is_delay_thread == 1) {
         pthread_t thread;
         pthread_create(&thread, NULL, delay_thread, (void *)args);
-        // pthread_detach(thread);
         pthread_join(thread, NULL);
-        // exit(0);
+        exit(0);
       } else {
         setpgid(getpid(), getpid());
         if (background == 0) {

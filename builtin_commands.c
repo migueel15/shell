@@ -164,7 +164,7 @@ void *delay_thread(void *params) {
     return NULL;
   }
   int seconds = atoi(args[1]);
-  if (seconds <= 0) {
+  if (seconds < 0) {
     perror("Usage: delay <seconds>\n");
     return NULL;
   }
