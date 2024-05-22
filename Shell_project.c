@@ -176,7 +176,6 @@ int main(void) {
     }
     // --------------------------------- //
 
-    printf("%d\n", is_delay_thread);
     pid_fork = fork();
     if (pid_fork == -1) {
       perror("Error al crear el proceso hijo");
@@ -189,7 +188,8 @@ int main(void) {
       if (is_delay_thread == 1) {
         pthread_t thread;
         pthread_create(&thread, NULL, delay_thread, (void *)args);
-        pthread_detach(thread);
+        // pthread_detach(thread);
+        pthread_join(thread, NULL);
         // exit(0);
       } else {
         setpgid(getpid(), getpid());

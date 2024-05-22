@@ -155,10 +155,10 @@ void alarm_thread(char **args, job *job_list,
 void *delay_thread(void *params) {
   char **args = (char **)params;
 
-  char *command = args[2];
-  execvp("notify-send",
-         (char *[]){"notify-send", command, "This is a delay thread", NULL});
+  setpgid(getpid(), getpid());
+  restore_terminal_signals();
 
+  char *command = args[2];
   if (args[1] == NULL) {
     perror("Usage: delay <seconds>\n");
     return NULL;
@@ -169,8 +169,7 @@ void *delay_thread(void *params) {
     return NULL;
   }
   sleep(seconds);
+  execvp(command, args + 2);
 
-  execvp(args[2], NULL);
-  perror("Error al ejecutar el comando");
   return NULL;
 }
