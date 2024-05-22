@@ -11,6 +11,7 @@ typedef enum {
   BG,
   ALARM_THREAD,
   DELAY_THREAD,
+  MASK,
 } e_builtin;
 
 typedef struct {
@@ -38,5 +39,6 @@ void send_bg(char *args[], job *job_list);
 void alarm_thread(char *args[], job *job_list, s_alarm_thread_args *ptr);
 void *sleepTimeoutKill(void *args);
 void *delay_thread(void *params);
+void mask(char *args[]);
 
 #endif

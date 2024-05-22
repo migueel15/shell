@@ -11,7 +11,8 @@ s_command builtin_commands[] = {{EXIT, "exit"},
                                 {FG, "fg"},
                                 {BG, "bg"},
                                 {ALARM_THREAD, "alarm-thread"},
-                                {DELAY_THREAD, "delay-thread"}};
+                                {DELAY_THREAD, "delay-thread"},
+                                {MASK, "mask"}};
 
 e_builtin check_if_builtin(char *command) {
   int maxLen = sizeof(builtin_commands) / sizeof(s_command);
@@ -45,7 +46,9 @@ void run_builtin_command(e_builtin COMMAND, char *args[], job *job_list,
     alarm_thread(args, job_list, alarm_thread_args);
     break;
   case DELAY_THREAD:
-    // delay_thread(args);
+    break;
+  case MASK:
+    mask(args);
     break;
   }
 }
@@ -172,4 +175,50 @@ void *delay_thread(void *params) {
   execvp(command, args + 2);
 
   return NULL;
+}
+
+// supongo que solo se puede ejecutar en foreground
+void mask(char *args[]) {
+  int *signals = malloc(sizeof(int) * 128);
+  int i = 0;
+  args[0] = NULL;
+  while (strcmp(args[i + 1], "-c") != 0) {
+    signals[i] = atoi(args[i + 1]);
+    args[i + 1] = NULL;
+    i++;
+  }
+  signals[i] = -1;
+  i += 2;
+
+  int j = 0;
+  while (args[i] != NULL) {
+    args[j] = strdup(args[i]);
+    args[i] = NULL;
+    i++;
+    j++;
+  }
+  args[j] = NULL;
+
+  int pid_fork = fork();
+  if (pid_fork == 0) {
+    setpgid(getpid(), getpid());
+    tcsetpgrp(STDIN_FILENO, getpid());
+    terminal_signals(SIG_DFL);
+    i = 0;
+    while (signals[i] != -1) {
+      mask_signal(signals[i], SIG_BLOCK);
+      i++;
+    }
+    execvp(args[0], args);
+  } else {
+    int status;
+    int info;
+    waitpid(pid_fork, &status, WUNTRACED);
+    tcsetpgrp(STDIN_FILENO, getpid());
+    terminal_signals(SIG_IGN);
+
+    status = analyze_status(status, &info);
+    printf("Foreground pid: %d, command: %s, %s, info: %d\n", pid_fork, args[0],
+           status_strings[status], info);
+  }
 }
