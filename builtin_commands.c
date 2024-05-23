@@ -149,12 +149,6 @@ void alarm_thread(char **args, job *job_list,
   }
 }
 
-// void *sleepTimeout(void *args[]) {
-//   int seconds = atoi(args[1]);
-//   sleep(seconds);
-//   return NULL;
-// }
-
 void *delay_thread(void *params) {
   char **args = (char **)params;
 
