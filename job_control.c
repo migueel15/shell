@@ -124,6 +124,13 @@ int delete_job(job *list, job *item) {
     return 0;
   aux->next = item->next;
   free(item->command);
+
+  int i = 0;
+  while (item->args[i] != NULL) {
+    free(item->args[i]);
+    i++;
+  }
+  free(item->args);
   free(item);
   list->pgid--;
   return 1;
